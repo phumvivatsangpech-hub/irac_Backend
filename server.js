@@ -62,6 +62,24 @@ app.post('/api/login', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// --- API สำหรับสมัครสมาชิกใหม่ (เพิ่มส่วนนี้) ---
+app.post('/api/register', (req, res) => {
+    const { username, password, name } = req.body;
+    try {
+        // เตรียมคำสั่ง SQL สำหรับเพิ่มผู้ใช้ใหม่ลงในตาราง users
+        const stmt = db.prepare('INSERT INTO users (username, password, name) VALUES (?, ?, ?)');
+        stmt.run(username, password, name);
+        res.json({ message: 'สมัครสมาชิกสำเร็จแล้ว!' });
+    } catch (err) {
+        // ตรวจสอบว่าชื่อผู้ใช้ซ้ำหรือไม่
+        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            res.status(400).json({ error: '❌ ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว' });
+        } else {
+            res.status(500).json({ error: '❌ เกิดข้อผิดพลาด: ' + err.message });
+        }
+    }
+});
+
 app.get('/api/history/:userId', (req, res) => {
     const sql = `SELECT h.*, p.pest_name, g.g_name FROM usage_history h 
                  JOIN pest p ON h.pest_id = p.pest_id 
